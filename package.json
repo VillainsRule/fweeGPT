@@ -1,0 +1,4 @@
+{
+    "name": "freegpt",
+    "main": "src/main.ts"
+}
