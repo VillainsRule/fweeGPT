@@ -1,4 +1,33 @@
 {
-    "name": "freegpt",
-    "main": "src/main.ts"
+    "name": "fweegpt",
+    "description": "Uses the ChatGPT translate endpoint to give you free (unlimted?) access to ChatGPT.",
+    "version": "1.0.1",
+    "keywords": [
+        "openai",
+        "chatgpt",
+        "free",
+        "unlimited",
+        "2026"
+    ],
+    "files": [
+        "dist/**/*",
+        "package.json",
+        "README.md"
+    ],
+    "main": "dist/main.js",
+    "types": "dist/main.d.ts",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/VillainsRule/fweeGPT"
+    },
+    "type": "module",
+    "scripts": {
+        "build": "rm -rf ./dist && bun cli/build.ts && bunx --bun dts-bundle-generator --silent src/main.ts -o dist/main.d.ts",
+        "tests": "bun run build && bun tests/basic.js"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.3.9",
+        "dts-bundle-generator": "^9.5.1",
+        "typescript": "^5.9.3"
+    }
 }

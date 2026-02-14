@@ -1,0 +1,27 @@
+name: publish fweeGPT
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: build fweeGPT
+        run: bun run build
+
+      - name: install npm
+        run: bun install -g npm@latest
+
+      - name: publish to NPM
+        run: npm publish

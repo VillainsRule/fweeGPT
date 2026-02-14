@@ -1,5 +1,3 @@
-const PROMPT = `Briefly explain the quadratic formula, respond as if you are writing markdown.`;
-
 import navigatorKeys from './keys/navigator.js';
 import windowKeys from './keys/window.js';
 
@@ -14,12 +12,12 @@ const randomNumber = (min: number, max: number) => Math.floor(Math.random() * (m
 
 const gptHomepage = await fetch('https://chatgpt.com/translate').then(res => res.text());
 
-let oaiBuildId;
+let oaiBuildId: string | undefined = undefined;
 
 try {
     oaiBuildId = gptHomepage.match(/data-seq="([^"]+)"/)?.[1];
 } catch (e) {
-    console.error('failed to extract data-build from GPT homepage (should still work)');
+    console.error('[fweeGPT] failed to extract data-build from GPT homepage (should still work)');
 }
 
 function m1(t: any) {
@@ -55,28 +53,7 @@ const getConfig = () => {
 }
 
 const config = getConfig();
-
 const deviceId = crypto.randomUUID();
-
-const req1 = await fetch('https://chatgpt.com/backend-anon/sentinel/chat-requirements/prepare', {
-    method: 'POST',
-    headers: {
-        'Accept': '*/*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Content-Type': 'application/json',
-        'Cookie': `oai-did=${deviceId}`,
-        'Oai-Build-Id': oaiBuildId?.toString() || randomNumber(1000000000, 9999999999).toString(),
-        'Oai-Client-Version': config[6].toString() || '',
-        'Oai-DeviceId': deviceId,
-        'Oai-Language': config[8] || 'en-US',
-        'Origin': 'https://chatgpt.com',
-        'Referer': 'https://chatgpt.com/translate',
-        'User-Agent': config[4] || commonUserAgents[commonUserAgents.length * Math.random() | 0]
-    },
-    body: JSON.stringify({ p: 'gAAAAAC' + m1(config) })
-});
-
-const res1 = await req1.json();
 
 function kpe(t: string) {
     let e = 2166136261;
@@ -107,7 +84,7 @@ const powGenAnswerSync = (e: string, n: string) => {
             if (r) return r;
         }
     } catch (o) {
-        console.error('fuck, pow failed', o);
+        console.error('[fweeGPT] fuck, pow failed', o);
     }
     return null;
 }
@@ -135,6 +112,37 @@ const powGetAnswer = (e: powChallenge) => {
     }
 }
 
+interface Message {
+    id: string;
+    author: { role: string };
+    create_time: number;
+    content: {
+        content_type: 'text';
+        parts: any[];
+    }
+}
+
+
+const req1 = await fetch('https://chatgpt.com/backend-anon/sentinel/chat-requirements/prepare', {
+    method: 'POST',
+    headers: {
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Content-Type': 'application/json',
+        'Cookie': `oai-did=${deviceId}`,
+        'Oai-Build-Id': oaiBuildId?.toString() || randomNumber(1000000000, 9999999999).toString(),
+        'Oai-Client-Version': config[6].toString() || '',
+        'Oai-DeviceId': deviceId,
+        'Oai-Language': config[8] || 'en-US',
+        'Origin': 'https://chatgpt.com',
+        'Referer': 'https://chatgpt.com/translate',
+        'User-Agent': config[4] || commonUserAgents[commonUserAgents.length * Math.random() | 0]
+    },
+    body: JSON.stringify({ p: 'gAAAAAC' + m1(config) })
+});
+
+const res1 = await req1.json() as any;
+
 const powAnswer = powGetAnswer(res1);
 
 const body = JSON.stringify({
@@ -142,91 +150,94 @@ const body = JSON.stringify({
     proofofwork: powAnswer
 });
 
-const req2 = await fetch('https://chatgpt.com/backend-anon/sentinel/chat-requirements/finalize', {
-    method: 'POST',
-    headers: {
-        'Accept': '*/*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Content-Type': 'application/json',
-        'Cookie': `oai-did=${deviceId}`,
-        'Oai-Build-Id': oaiBuildId || randomNumber(1000000000, 9999999999).toString(),
-        'Oai-Client-Version': config[6],
-        'Oai-DeviceId': deviceId,
-        'Oai-Language': config[7],
-        'Origin': 'https://chatgpt.com',
-        'Referer': 'https://chatgpt.com/translate',
-        'User-Agent': config[4]
-    },
-    body
-});
+const askGPT = async (params: { prompt: string, messages?: Message[] }) => {
+    if (!params.prompt) throw new Error('no prompt specified to askGPT()');
 
-const res2 = await req2.json();
+    const req2 = await fetch('https://chatgpt.com/backend-anon/sentinel/chat-requirements/finalize', {
+        method: 'POST',
+        headers: {
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Content-Type': 'application/json',
+            'Cookie': `oai-did=${deviceId}`,
+            'Oai-Build-Id': oaiBuildId || randomNumber(1000000000, 9999999999).toString(),
+            'Oai-Client-Version': config[6],
+            'Oai-DeviceId': deviceId,
+            'Oai-Language': config[7],
+            'Origin': 'https://chatgpt.com',
+            'Referer': 'https://chatgpt.com/translate',
+            'User-Agent': config[4]
+        },
+        body
+    });
 
-console.log('starting generation...');
+    const res2 = await req2.json() as any;
 
-const req3 = await fetch('https://chatgpt.com/backend-anon/conversation', {
-    method: 'POST',
-    headers: {
-        'Accept': '*/*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Content-Type': 'application/json',
-        'Cookie': `oai-did=${deviceId}`,
-        'Oai-Build-Id': oaiBuildId || randomNumber(1000000000, 9999999999).toString(),
-        'Oai-Client-Version': config[6],
-        'Oai-DeviceId': deviceId,
-        'Oai-Language': config[7],
-        'openai-sentinel-chat-requirements-token': res2.token,
-        'openai-sentinel-proof-token': powAnswer!,
-        'openai-sentinel-turnstile-token': powAnswer!, // you could at least check it serverside ffs
-        'Origin': 'https://chatgpt.com',
-        'Referer': 'https://chatgpt.com/translate',
-        'User-Agent': config[4]
-    },
-    body: JSON.stringify({
-        'action': 'next',
-        'conversation_mode': { 'kind': 'primary_assistant' },
-        'history_and_training_disabled': true,
-        'is_visible': true,
-        'messages': [
-            {
-                'id': crypto.randomUUID(),
-                'author': { 'role': 'user' },
-                'create_time': Math.floor(Date.now() / 1000),
-                'content': {
-                    'content_type': 'text',
-                    'parts': [PROMPT]
+    const req3 = await fetch('https://chatgpt.com/backend-anon/conversation', {
+        method: 'POST',
+        headers: {
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Content-Type': 'application/json',
+            'Cookie': `oai-did=${deviceId}`,
+            'Oai-Build-Id': oaiBuildId || randomNumber(1000000000, 9999999999).toString(),
+            'Oai-Client-Version': config[6],
+            'Oai-DeviceId': deviceId,
+            'Oai-Language': config[7],
+            'openai-sentinel-chat-requirements-token': res2.token,
+            'openai-sentinel-proof-token': powAnswer!,
+            'openai-sentinel-turnstile-token': powAnswer!, // you could at least check it serverside ffs
+            'Origin': 'https://chatgpt.com',
+            'Referer': 'https://chatgpt.com/translate',
+            'User-Agent': config[4]
+        },
+        body: JSON.stringify({
+            'action': 'next',
+            'conversation_mode': { 'kind': 'primary_assistant' },
+            'history_and_training_disabled': true,
+            'is_visible': true,
+            'messages': params.messages ?? [
+                {
+                    'id': crypto.randomUUID(),
+                    'author': { 'role': 'user' },
+                    'create_time': Math.floor(Date.now() / 1000),
+                    'content': {
+                        'content_type': 'text',
+                        'parts': [params.prompt]
+                    }
                 }
+            ],
+            'model': 'gpt-4.0',
+            'supported_encodings': ['v1'],
+            'supports_buffering': true
+        })
+    });
+
+    const res3 = await req3.text();
+
+    const allDataLines = res3.split('\n').filter(line => line.startsWith('data: ')).map(line => line.replace('data: ', '')).filter(line => line !== '[DONE]');
+    if (allDataLines.length === 0) console.error('[fweeGPT] gg couldnt find data, res:', res3);
+
+    let finalResponse = '';
+
+    for (const line of allDataLines) {
+        try {
+            const json = JSON.parse(line.trim());
+            if (typeof json === 'object') {
+                if (json.o === 'append' && typeof json.v === 'string') finalResponse += json.v;
+
+                if (json.o === 'patch' && typeof json.v === 'object') json.v.forEach((e: any) => {
+                    if (e.o === 'append' && typeof e.v === 'string') finalResponse += e.v;
+                });
+
+                if (typeof json.v === 'string' && !json.o) finalResponse += json.v;
             }
-        ],
-        'model': 'gpt-5.2',
-        'supported_encodings': ['v1'],
-        'supports_buffering': true
-    })
-});
-
-const res3 = await req3.text();
-
-const allDataLines = res3.split('\n').filter(line => line.startsWith('data: ')).map(line => line.replace('data: ', '')).filter(line => line !== '[DONE]');
-
-if (allDataLines.length === 0) console.log('gg couldnt find data, res:', res3);
-
-let finalResponse = '';
-
-for (const line of allDataLines) {
-    try {
-        const json = JSON.parse(line.trim());
-        if (typeof json === 'object') {
-            if (json.o === 'append' && typeof json.v === 'string') finalResponse += json.v;
-
-            if (json.o === 'patch' && typeof json.v === 'object') json.v.forEach((e: any) => {
-                if (e.o === 'append' && typeof e.v === 'string') finalResponse += e.v;
-            });
-
-            if (typeof json.v === 'string' && !json.o) finalResponse += json.v;
+        } catch (e) {
+            console.error('[fweeGPT] failed to parse line:', line, e);
         }
-    } catch (e) {
-        console.error('Failed to parse line:', line, e);
     }
+
+    return finalResponse;
 }
 
-console.log(finalResponse);
+export default askGPT;
